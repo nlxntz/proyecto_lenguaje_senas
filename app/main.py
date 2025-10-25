@@ -16,7 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="app/frontend"), name="static")
+app.mount("/frontend", StaticFiles(directory="app/frontend"), name="frontend")
 
 MODEL_PATH = "sign_model.h5"
 DATASET_PATH = "dataset/asl_alphabet_test"
@@ -27,23 +27,11 @@ MODEL = load_trained_model(MODEL_PATH)
 async def get_index():
     return FileResponse(os.path.join("app/frontend", "index.html"))
 
-@app.get("/api")
-def read_root():
-    return {"message": "API de lenguaje de señas funcionando"}
-
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     try:
         img_bytes = await file.read()
-        temp_path = f"temp_{file.filename}"
-        with open(temp_path, "wb") as f:
-            f.write(img_bytes)
-
-        predicted_label = predict_image(MODEL, temp_path, LABELS)
-
-        os.remove(temp_path)
-
+        predicted_label = predict_image(MODEL, img_bytes, LABELS)
         return JSONResponse(content={"prediction": predicted_label})
-
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})

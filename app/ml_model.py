@@ -3,9 +3,6 @@ from app.utils import load_dataset, load_and_preprocess_image
 import numpy as np
 
 def create_model(input_shape, num_classes):
-    """
-    Crea una CNN simple para reconocimiento de lenguaje de señas.
-    """
     model = tf.keras.Sequential([
         tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=input_shape),
         tf.keras.layers.MaxPooling2D(2,2),
@@ -20,9 +17,6 @@ def create_model(input_shape, num_classes):
     return model
 
 def train_model(dataset_path, img_size=(64,64), epochs=10):
-    """
-    Entrena el modelo usando imágenes del dataset.
-    """
     X, y, labels = load_dataset(dataset_path, img_size)
     y_cat = tf.keras.utils.to_categorical(y, num_classes=len(labels))
     model = create_model((img_size[0], img_size[1], 3), len(labels))
@@ -32,16 +26,10 @@ def train_model(dataset_path, img_size=(64,64), epochs=10):
     return model, labels
 
 def load_trained_model(model_path="sign_model.h5"):
-    """
-    Carga un modelo previamente entrenado.
-    """
     model = tf.keras.models.load_model(model_path)
     return model
 
 def predict_image(model, img_path, labels, img_size=(64,64)):
-    """
-    Predice la letra de una imagen usando el modelo entrenado.
-    """
     img = load_and_preprocess_image(img_path, img_size)
     img = np.expand_dims(img, axis=0)
     pred = model.predict(img)

@@ -3,19 +3,17 @@ import numpy as np
 import os
 
 def load_and_preprocess_image(img_path, img_size=(64, 64)):
-    """
-    Carga una imagen, la redimensiona y normaliza los valores.
-    """
-    img = Image.open(img_path).convert('RGB')  # Mantener color
+    if isinstance(img_path, bytes):
+        from io import BytesIO
+        img = Image.open(BytesIO(img_path))
+    else:
+        img = Image.open(img_path)
+    img = img.convert('RGB')
     img = img.resize(img_size)
-    img_array = np.array(img) / 255.0  # Normalizar 0-1
+    img_array = np.array(img) / 255.0
     return img_array
 
 def load_dataset(dataset_path, img_size=(64, 64)):
-    """
-    Carga todas las imágenes del directorio (sin subcarpetas) y asigna etiquetas
-    basadas en la primera letra del nombre del archivo (por ejemplo A_test.jpg → A).
-    """
     X = []
     y = []
     labels = []
@@ -32,7 +30,6 @@ def load_dataset(dataset_path, img_size=(64, 64)):
             y.append(labels.index(label))
         except Exception as e:
             print(f"Error cargando {file_path}: {e}")
-
     X = np.array(X)
     y = np.array(y)
     return X, y, labels
