@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Lenguaje de Señas</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen flex flex-col items-center justify-start py-10 text-white font-sans">
+    <h1 class="text-5xl font-extrabold mb-10 text-center drop-shadow-lg">Reconocimiento de Lenguaje de Señas ✋</h1>
+    <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md mb-10 transition-transform hover:scale-105">
+        <h2 class="text-2xl font-semibold text-center mb-4">Sube una imagen</h2>
+        <input type="file" id="fileInput" class="block w-full mb-4 rounded bg-white/20 p-2 text-black" accept="image/*">
+        <div id="previewContainer" class="my-4 text-center hidden">
+            <img id="previewImage" class="mx-auto rounded-xl shadow-md max-w-full" alt="Vista previa">
+        </div>
+        <button id="predictBtn" class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-xl hover:bg-yellow-500 transition">🔍 Predecir</button>
+        <div id="result" class="mt-4 p-3 bg-white/20 rounded-xl text-black hidden text-center shadow-inner">
+            Predicción: <span id="prediction" class="font-bold text-lg"></span>
+        </div>
+    </div>
+
+    <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md transition-transform hover:scale-105">
+        <h2 class="text-2xl font-semibold text-center mb-4">Cámara en tiempo real</h2>
+        <video id="video" width="320" height="240" autoplay class="mx-auto rounded-xl shadow-md mb-4"></video>
+        <div id="livePrediction" class="text-center p-3 bg-white/20 rounded-xl text-black font-bold text-2xl shadow-inner">
+            Predicción: <span id="predictionLive">–</span>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const predictBtn = document.getElementById("predictBtn");
+        const prediction = document.getElementById("prediction");
+        const result = document.getElementById("result");
+        let selectedFile = null;
+
+        fileInput.addEventListener("change", (e) => {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const previewImage = document.getElementById("previewImage");
+                    previewImage.src = ev.target.result;
+                    document.getElementById("previewContainer").classList.remove("hidden");
+                }
+                reader.readAsDataURL(selectedFile);
+            }
+        });
+
+        predictBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+
+            predictBtn.textContent = "⏳ Procesando...";
+            predictBtn.disabled = true;
+
+            try {
+                const response = await fetch("/predict", { method: "POST", body: formData });
+                const data = await response.json();
+                prediction.textContent = data.prediction || "⚠️ Error al procesar";
+                result.classList.remove("hidden");
+            } catch (error) {
+                prediction.textContent = "❌ Error al conectar con el servidor";
+                result.classList.remove("hidden");
+            }
+
+            predictBtn.textContent = "🔍 Predecir";
+            predictBtn.disabled = false;
+        });
+
+        const video = document.getElementById("video");
+        const predictionLive = document.getElementById("predictionLive");
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => console.error("No se puede acceder a la cámara", err));
+
+        const predictLive = async () => {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(async (blob) => {
+                    const formData = new FormData();
+                    formData.append("file", blob, "live.jpg");
+
+                    try {
+                        const response = await fetch("/predict", { method: "POST", body: formData });
+                        const data = await response.json();
+                        predictionLive.textContent = data.prediction || "–";
+                    } catch (error) {
+                        predictionLive.textContent = "❌";
+                    }
+                }, "image/jpeg");
+            }
+        };
+
+        setInterval(predictLive, 800);
+    </script>
+</body>
+</html>
