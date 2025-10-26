@@ -45,3 +45,10 @@ Funcionalidades:
 - Cámara en tiempo real: El sistema detecta tu mano y predice las letras en tiempo real cada 0.8 segundos.
 
 - Interfaz atractiva: Diseño moderno y responsive con Tailwind CSS y efectos de sombra y blur.
+
+Tips para mejor predicción:
+
+1. Mantén la mano centrada y en frente de la cámara.
+2. Fondo neutro y buena iluminación.
+3. Entrena el modelo con tus propias imágenes si el reconocimiento no es preciso.
+4. Aumenta el tamaño del recorte de la mano si tu cámara es de alta resolución.
