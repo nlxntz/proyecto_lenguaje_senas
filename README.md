@@ -17,20 +17,25 @@ Tecnologías:
 Instalación:
 
 1. Clonar el repositorio
+
 git clone https://github.com/nlxntz/proyecto_lenguaje_senas.git
 cd proyecto_lenguaje_senas
 
 2. Crar y activar entorno virtual
+
 python -m venv venv
 venv\Scripts\activate
 
 3. instalar dependencias
+
 pip install -r requirements.txt
 
 4. Entrenar el modelo
+
 python -m app.ml_model
 
-5. Ejecutar el servidor4
+5. Ejecutar el servidor
+
 uvicorn app.main:app --reload
 
 Funcionalidades:
