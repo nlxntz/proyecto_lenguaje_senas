@@ -19,11 +19,13 @@ Instalación:
 1. Clonar el repositorio
 
 git clone https://github.com/nlxntz/proyecto_lenguaje_senas.git
+
 cd proyecto_lenguaje_senas
 
 2. Crar y activar entorno virtual
 
 python -m venv venv
+
 venv\Scripts\activate
 
 3. instalar dependencias
