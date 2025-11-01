@@ -1,5 +1,5 @@
 import tensorflow as tf
-from app.utils import load_dataset, load_and_preprocess_image
+from app.utils import load_dataset, detect_hand_and_crop
 import numpy as np
 
 def create_model(input_shape, num_classes):
@@ -26,13 +26,13 @@ def train_model(dataset_path, img_size=(64,64), epochs=10):
     return model, labels
 
 def load_trained_model(model_path="sign_model.h5"):
-    model = tf.keras.models.load_model(model_path)
-    return model
+    return tf.keras.models.load_model(model_path)
 
-def predict_image(model, img_path, labels, img_size=(64,64)):
-    img = load_and_preprocess_image(img_path, img_size)
-    img = np.expand_dims(img, axis=0)
-    pred = model.predict(img)
+def predict_image(model, image_bytes, labels, img_size=(64,64)):
+    cropped = detect_hand_and_crop(image_bytes, img_size)
+    if cropped is None:
+        return "No se detectó mano"
+    pred = model.predict(cropped)
     predicted_label = labels[np.argmax(pred)]
     return predicted_label
 

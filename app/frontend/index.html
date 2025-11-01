@@ -4,34 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proyecto Lenguaje de Señas</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
     <link rel="stylesheet" href="/frontend/styles.css">
 </head>
 <body class="min-h-screen flex flex-col items-center justify-start py-10 text-white font-sans">
 
-<h1 class="text-5xl font-extrabold mb-10 text-center drop-shadow-lg">Reconocimiento de Lenguaje de Señas</h1>
+    <h1 class="text-5xl font-extrabold mb-12 text-center drop-shadow-lg">Reconocimiento de Lenguaje de Señas</h1>
 
-<div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md mb-10 transition-transform hover:scale-105">
-    <h2 class="text-2xl font-semibold text-center mb-4">Sube una imagen</h2>
-    <input type="file" id="fileInput" class="block w-full mb-4 rounded bg-white/20 p-2 text-black" accept="image/*">
-    <div id="previewContainer" class="my-4 text-center hidden">
-        <img id="previewImage" class="mx-auto rounded-xl shadow-md max-w-full" alt="Vista previa">
-    </div>
-    <button id="predictBtn" class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-xl hover:bg-yellow-500 transition">🔍 Predecir</button>
-    <div id="result" class="mt-4 p-3 bg-white/20 rounded-xl text-black hidden text-center shadow-inner">
-        Predicción: <span id="prediction" class="font-bold text-lg"></span>
-    </div>
-</div>
+    <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md mb-12 transition-transform hover:scale-105">
+        <h2 class="text-2xl font-semibold text-center mb-4">Cámara en tiempo real</h2>
+        <div class="relative mx-auto mb-4">
+            <video id="video" width="320" height="240" autoplay class="rounded-xl shadow-md"></video>
+            <canvas id="overlay" width="320" height="240" class="absolute top-0 left-0 rounded-xl pointer-events-none"></canvas>
+        </div>
 
-<div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md transition-transform hover:scale-105">
-    <h2 class="text-2xl font-semibold text-center mb-4">Cámara en tiempo real</h2>
-    <video id="video" width="320" height="240" autoplay class="mx-auto rounded-xl shadow-md mb-4"></video>
-    <div id="livePrediction" class="text-center p-3 bg-white/20 rounded-xl text-black font-bold text-2xl shadow-inner">
-        Predicción: <span id="predictionLive">–</span>
+        <div class="flex justify-center space-x-4 mb-4">
+            <button id="toggleBtn" class="bg-yellow-400 text-black font-semibold py-2 px-4 rounded-xl hover:bg-yellow-500 transition shadow">
+                ⏸ Pausar
+            </button>
+        </div>
+
+        <div id="livePrediction" class="bg-white/20 p-3 rounded-xl text-black font-bold text-2xl shadow-inner text-center">
+            Predicción actual: <span id="predictionLive">–</span>
+        </div>
+
+        <div id="currentWord" class="mt-4 p-3 bg-white/20 rounded-xl text-black font-semibold text-xl shadow-inner text-center">
+            Palabra formada: <span id="wordDisplay">–</span>
+        </div>
     </div>
-</div>
+
+    <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md transition-transform hover:scale-105">
+        <h2 class="text-2xl font-semibold text-center mb-4">Prueba con una imagen</h2>
+        <input type="file" id="fileInput" class="block w-full mb-4 rounded bg-white/20 p-2 text-black" accept="image/*">
+        <div id="previewContainer" class="my-4 text-center hidden">
+            <img id="previewImage" class="mx-auto rounded-xl shadow-md max-w-full" alt="Vista previa">
+        </div>
+        <button id="predictBtn" class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-xl hover:bg-yellow-500 transition">🔍 Predecir</button>
+        <div id="result" class="mt-4 p-3 bg-white/20 rounded-xl text-black hidden text-center shadow-inner">
+            Predicción: <span id="prediction" class="font-bold text-lg"></span>
+        </div>
+    </div>
 
 <script>
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const ctx = overlay.getContext("2d");
+const predictionLive = document.getElementById("predictionLive");
+const wordDisplay = document.getElementById("wordDisplay");
+const toggleBtn = document.getElementById("toggleBtn");
+
+let isRunning = true;
+
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => { video.srcObject = stream; })
+.catch(err => console.error("No se puede acceder a la cámara", err));
+
+toggleBtn.addEventListener("click", () => {
+    isRunning = !isRunning;
+    toggleBtn.textContent = isRunning ? "⏸ Pausar" : "▶ Reanudar";
+});
+
+const predictLive = async () => {
+    if (!isRunning || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.drawImage(video, 0, 0, overlay.width, overlay.height);
+
+    const cropSize = Math.min(overlay.width, overlay.height, 200);
+    const startX = (overlay.width - cropSize) / 2;
+    const startY = (overlay.height - cropSize) / 2;
+
+    ctx.strokeStyle = "#FFD700";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(startX, startY, cropSize, cropSize);
+
+    const handCanvas = document.createElement("canvas");
+    handCanvas.width = 64;
+    handCanvas.height = 64;
+    const handCtx = handCanvas.getContext("2d");
+    handCtx.drawImage(overlay, startX, startY, cropSize, cropSize, 0, 0, 64, 64);
+
+    handCanvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append("file", blob, "hand.jpg");
+        try {
+            const response = await fetch("/predict", { method: "POST", body: formData });
+            const data = await response.json();
+            predictionLive.textContent = data.prediction || "–";
+            wordDisplay.textContent = data.word || "–";
+        } catch {
+            predictionLive.textContent = "❌";
+        }
+    }, "image/jpeg");
+};
+
+setInterval(predictLive, 400);
+
 const fileInput = document.getElementById("fileInput");
 const predictBtn = document.getElementById("predictBtn");
 const prediction = document.getElementById("prediction");
@@ -43,10 +111,9 @@ fileInput.addEventListener("change", (e) => {
     if (selectedFile) {
         const reader = new FileReader();
         reader.onload = function(ev) {
-            const previewImage = document.getElementById("previewImage");
-            previewImage.src = ev.target.result;
+            document.getElementById("previewImage").src = ev.target.result;
             document.getElementById("previewContainer").classList.remove("hidden");
-        }
+        };
         reader.readAsDataURL(selectedFile);
     }
 });
@@ -54,73 +121,23 @@ fileInput.addEventListener("change", (e) => {
 predictBtn.addEventListener("click", async (e) => {
     e.preventDefault();
     if (!selectedFile) return;
-
     const formData = new FormData();
     formData.append("file", selectedFile);
-
     predictBtn.textContent = "⏳ Procesando...";
     predictBtn.disabled = true;
-
     try {
         const response = await fetch("/predict", { method: "POST", body: formData });
         const data = await response.json();
-        prediction.textContent = data.prediction || "⚠️ Error al procesar";
+        prediction.textContent = data.prediction || "Error al procesar";
+        document.getElementById("wordDisplay").textContent = data.word || "–";
         result.classList.remove("hidden");
-    } catch (error) {
-        prediction.textContent = "❌ Error al conectar con el servidor";
+    } catch {
+        prediction.textContent = "Error al conectar con el servidor";
         result.classList.remove("hidden");
     }
-
     predictBtn.textContent = "🔍 Predecir";
     predictBtn.disabled = false;
 });
-
-const video = document.getElementById("video");
-const predictionLive = document.getElementById("predictionLive");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => { video.srcObject = stream; })
-    .catch(err => console.error("No se puede acceder a la cámara", err));
-
-const predictLive = async () => {
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const cropSize = Math.min(canvas.width, canvas.height, 200);
-        const startX = (canvas.width - cropSize) / 2;
-        const startY = (canvas.height - cropSize) / 2;
-
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(startX, startY, cropSize, cropSize);
-
-        const handCanvas = document.createElement("canvas");
-        handCanvas.width = 64;
-        handCanvas.height = 64;
-        const handCtx = handCanvas.getContext("2d");
-        handCtx.drawImage(canvas, startX, startY, cropSize, cropSize, 0, 0, 64, 64);
-
-        handCanvas.toBlob(async (blob) => {
-            const formData = new FormData();
-            formData.append("file", blob, "hand.jpg");
-
-            try {
-                const response = await fetch("/predict", { method: "POST", body: formData });
-                const data = await response.json();
-                predictionLive.textContent = data.prediction || "–";
-            } catch (error) {
-                predictionLive.textContent = "❌";
-            }
-        }, "image/jpeg");
-    }
-};
-
-setInterval(predictLive, 400);
 </script>
 </body>
 </html>
