@@ -1,7 +1,8 @@
 fastapi
 uvicorn
 tensorflow
-numpy
-pillow
 opencv-python
-python-multipart
+pillow
+pandas
+numpy
+spicy
