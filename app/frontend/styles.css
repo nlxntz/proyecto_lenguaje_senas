@@ -1,12 +1,5 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
-}
-
 body {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #4e54c8, #8f94fb);
     color: white;
     min-height: 100vh;
     display: flex;
@@ -14,49 +7,26 @@ body {
     align-items: center;
     justify-content: flex-start;
     padding: 2rem 1rem;
+    font-family: 'Inter', sans-serif;
 }
 
-h1, h2 {
-    text-align: center;
-    font-weight: 700;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+h1 {
+    text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.25);
 }
 
-div.bg-white\/10 {
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    padding: 1.5rem;
-    border-radius: 1.5rem;
-    box-shadow: 0 12px 24px rgba(0,0,0,0.3);
-    width: 100%;
-    max-width: 420px;
-    margin-bottom: 2rem;
+.camera-container {
+    position: relative;
+}
+
+.control-btn {
     transition: all 0.3s ease;
 }
 
-button {
-    cursor: pointer;
-    font-weight: 600;
-    border: none;
-    transition: background 0.3s ease, transform 0.2s ease;
+.control-btn:hover {
+    transform: scale(1.05);
 }
 
-button:hover {
-    transform: translateY(-2px);
-}
-
-input[type="file"] {
-    display: block;
-    width: 100%;
-    padding: 0.6rem;
-    border-radius: 0.75rem;
-    border: none;
-    background-color: rgba(255,255,255,0.2);
-    color: black;
-    margin-bottom: 1rem;
-}
-
-#result, #livePrediction {
+#livePrediction, #wordBox {
     background-color: rgba(255,255,255,0.2);
     padding: 0.8rem;
     border-radius: 0.75rem;
@@ -71,24 +41,4 @@ video {
     max-width: 100%;
     height: auto;
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-}
-
-#prediction, #predictionLive {
-    font-weight: 700;
-    font-size: 1.6rem;
-}
-
-@media (max-width: 768px) {
-    body {
-        padding: 1rem;
-    }
-
-    div.bg-white\/10 {
-        max-width: 100%;
-        padding: 1rem;
-    }
-}
-
-button, input[type="file"], div.bg-white\/10 {
-    transition: all 0.25s ease-in-out;
 }

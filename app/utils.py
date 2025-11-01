@@ -16,9 +16,13 @@ def detect_hand_and_crop(image_bytes, img_size=(64, 64)):
     upper = np.array([255, 173, 127], dtype=np.uint8)
     mask = cv2.inRange(img_ycrcb, lower, upper)
 
-    mask = cv2.GaussianBlur(mask, (5, 5), 0)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
+    mask = cv2.GaussianBlur(mask, (5, 5), 0)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         return None
 
@@ -27,6 +31,7 @@ def detect_hand_and_crop(image_bytes, img_size=(64, 64)):
         return None
 
     x, y, w, h = cv2.boundingRect(largest_contour)
+
     x_min = max(x - 20, 0)
     y_min = max(y - 20, 0)
     x_max = min(x + w + 20, img.shape[1])
@@ -39,7 +44,6 @@ def detect_hand_and_crop(image_bytes, img_size=(64, 64)):
     cropped = cv2.resize(cropped, img_size)
     cropped = cropped / 255.0
     return np.expand_dims(cropped, axis=0)
-
 
 def save_prediction_log(prediction, source="camera"):
     log_path = "prediction_history.csv"
@@ -55,7 +59,6 @@ def save_prediction_log(prediction, source="camera"):
         df = entry
     df.to_csv(log_path, index=False)
 
-
 def load_and_preprocess_image(img_path, img_size=(64, 64)):
     if isinstance(img_path, bytes):
         from io import BytesIO
@@ -66,7 +69,6 @@ def load_and_preprocess_image(img_path, img_size=(64, 64)):
     img = img.resize(img_size)
     img_array = np.array(img) / 255.0
     return img_array
-
 
 def load_dataset(dataset_path, img_size=(64, 64)):
     X = []
