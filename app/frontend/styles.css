@@ -1,0 +1,44 @@
+body {
+    background: linear-gradient(135deg, #4e54c8, #8f94fb);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 2rem 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+h1 {
+    text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.25);
+}
+
+.camera-container {
+    position: relative;
+}
+
+.control-btn {
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    transform: scale(1.05);
+}
+
+#livePrediction, #wordBox {
+    background-color: rgba(255,255,255,0.2);
+    padding: 0.8rem;
+    border-radius: 0.75rem;
+    font-size: 1.25rem;
+    text-align: center;
+    margin-top: 1rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+video {
+    border-radius: 1rem;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}

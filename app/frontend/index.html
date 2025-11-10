@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconocimiento de Lenguaje de Señas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-900 text-white flex flex-col items-center py-10 font-sans">
+
+  <h1 class="text-4xl md:text-5xl font-extrabold mb-10 text-center text-yellow-300 drop-shadow-lg">
+    Reconocimiento de Lenguaje de Señas
+  </h1>
+
+  <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-3xl text-center hover:scale-[1.01] transition-transform">
+    <h2 class="text-2xl font-semibold mb-4">Cámara en tiempo real</h2>
+
+    <div class="relative flex justify-center">
+      <img id="videoFeed" src="/video_feed" alt="Video de cámara"
+        class="rounded-xl shadow-lg w-full max-w-md border-2 border-yellow-400">
+    </div>
+
+    <div class="flex justify-center mt-5 gap-4">
+      <button id="toggleBtn"
+        class="bg-yellow-400 text-black font-semibold py-2 px-6 rounded-xl hover:bg-yellow-500 transition">
+        Pausar
+      </button>
+      <button id="clearBtn"
+        class="bg-red-400 text-black font-semibold py-2 px-6 rounded-xl hover:bg-red-500 transition">
+        Limpiar
+      </button>
+    </div>
+
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-lg">
+      <div class="bg-white/20 rounded-xl p-3 shadow-inner">
+        <strong>Señal detectada:</strong> <span id="predictionLive" class="text-yellow-300 font-bold">–</span>
+      </div>
+      <div class="bg-white/20 rounded-xl p-3 shadow-inner">
+        <strong>Palabra formada:</strong> <span id="wordLive" class="text-yellow-300 font-bold">–</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-3xl mt-10 hover:scale-[1.01] transition-transform">
+    <h2 class="text-2xl font-semibold text-center mb-4">Subir una imagen</h2>
+    <input type="file" id="fileInput"
+      class="block w-full mb-4 rounded bg-white/20 p-2 text-black cursor-pointer"
+      accept="image/*">
+
+    <div id="previewContainer" class="my-4 text-center hidden">
+      <img id="previewImage" class="mx-auto rounded-xl shadow-md max-w-full max-h-[300px]" alt="Vista previa">
+    </div>
+
+    <button id="predictBtn"
+      class="w-full bg-yellow-400 text-black font-semibold py-2 rounded-xl hover:bg-yellow-500 transition">
+      Predecir
+    </button>
+
+    <div id="result" class="mt-4 p-3 bg-white/20 rounded-xl hidden text-center shadow-inner text-lg">
+      <strong>Predicción:</strong> <span id="prediction" class="font-bold text-yellow-300"></span>
+    </div>
+  </div>
+
+  <footer class="mt-10 text-sm text-gray-300 text-center opacity-75">
+    Proyecto de Reconocimiento de Lenguaje de Señas — 2025
+  </footer>
+
+  <script>
+    const predictionLive = document.getElementById("predictionLive");
+    const wordLive = document.getElementById("wordLive");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    let isPaused = false;
+
+    async function fetchPrediction() {
+      if (isPaused) return;
+      try {
+        const response = await fetch("/history");
+        const data = await response.json();
+        if (data.length > 0) {
+          const latest = data[data.length - 1];
+          predictionLive.textContent = latest.prediction || "–";
+          wordLive.textContent = latest.word || "–";
+        }
+      } catch {
+        predictionLive.textContent = "Error de conexión";
+      }
+    }
+
+    toggleBtn.addEventListener("click", () => {
+      isPaused = !isPaused;
+      toggleBtn.textContent = isPaused ? "▶ Reanudar" : "⏸ Pausar";
+    });
+
+    clearBtn.addEventListener("click", () => {
+      predictionLive.textContent = "–";
+      wordLive.textContent = "–";
+    });
+
+    setInterval(fetchPrediction, 1000);
+
+    const fileInput = document.getElementById("fileInput");
+    const predictBtn = document.getElementById("predictBtn");
+    const prediction = document.getElementById("prediction");
+    const result = document.getElementById("result");
+    let selectedFile = null;
+
+    fileInput.addEventListener("change", (e) => {
+      selectedFile = e.target.files[0];
+      if (selectedFile) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById("previewImage").src = ev.target.result;
+          document.getElementById("previewContainer").classList.remove("hidden");
+        };
+        reader.readAsDataURL(selectedFile);
+      }
+    });
+
+    predictBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      if (!selectedFile) return;
+
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      predictBtn.textContent = "Procesando...";
+      predictBtn.disabled = true;
+
+      try {
+        const response = await fetch("/predict", { method: "POST", body: formData });
+        const data = await response.json();
+        prediction.textContent = data.prediction || "Error";
+        result.classList.remove("hidden");
+      } catch {
+        prediction.textContent = "Error de conexión";
+        result.classList.remove("hidden");
+      }
+
+      predictBtn.textContent = "Predecir";
+      predictBtn.disabled = false;
+    });
+  </script>
+</body>
+</html>
