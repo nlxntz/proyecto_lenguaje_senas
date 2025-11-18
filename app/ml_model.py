@@ -67,43 +67,54 @@ def train_model(dataset_path, img_size=(64,64), epochs=30):
 def load_trained_model(model_path="sign_model.h5"):
     return tf.keras.models.load_model(model_path)
 
-def predict_image(model, image_bytes, labels, img_size=(64,64)):
-    from app.utils import detect_hand_and_crop
+def predict_image(model, image_bytes, labels, img_size=(64, 64)):
+    img_array = np.frombuffer(image_bytes, np.uint8)
+    frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    if frame is None:
+        return "nothing"
 
-    roi_input = detect_hand_and_crop(image_bytes, img_size)
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    if roi_input is None:
-        img_array = np.frombuffer(image_bytes, np.uint8)
-        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-        if frame is None:
+    with mp_hands.Hands(
+        static_image_mode=True,
+        max_num_hands=1,
+        min_detection_confidence=0.5
+    ) as hands:
+        results = hands.process(frame_rgb)
+        if not results.multi_hand_landmarks:
             return "nothing"
-        
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        with mp_hands.Hands(static_image_mode=True, max_num_hands=1, min_detection_confidence=0.5) as hands:
-            results = hands.process(frame_rgb)
-            if not results.multi_hand_landmarks:
-                return "nothing"
-            
-            h, w, _ = frame.shape
-            x_min, y_min = w, h
-            x_max, y_max = 0, 0
-            for lm in results.multi_hand_landmarks[0].landmark:
-                x, y = int(lm.x * w), int(lm.y * h)
-                x_min, y_min = min(x_min, x), min(y_min, y)
-                x_max, y_max = max(x_max, x), max(y_max, y)
-            
-            pad = 10
-            x_min, y_min = max(0, x_min-pad), max(0, y_min-pad)
-            x_max, y_max = min(w, x_max+pad), min(h, y_max+pad)
-            roi = frame[y_min:y_max, x_min:x_max]
 
-        roi_resized = cv2.resize(roi, img_size)
-        roi_normalized = roi_resized / 255.0
-        roi_input = np.expand_dims(roi_normalized, axis=0)
+        h, w, _ = frame.shape
+        x_min, y_min = w, h
+        x_max, y_max = 0, 0
+
+        for lm in results.multi_hand_landmarks[0].landmark:
+            x, y = int(lm.x * w), int(lm.y * h)
+            x_min, y_min = min(x_min, x), min(y_min, y)
+            x_max, y_max = max(x_max, x), max(y_max, y)
+
+        pad = 10
+        x_min, y_min = max(0, x_min - pad), max(0, y_min - pad)
+        x_max, y_max = min(w, x_max + pad), min(h, y_max + pad)
+
+        roi = frame[y_min:y_max, x_min:x_max]
+
+    roi_resized = cv2.resize(roi, img_size)
+    roi_normalized = roi_resized / 255.0
+    roi_input = np.expand_dims(roi_normalized, axis=0)
 
     pred = model.predict(roi_input, verbose=0)
     predicted_label = labels[np.argmax(pred)]
     return predicted_label
+
+def classify_roi(model, roi, labels, img_size=(64, 64)):
+    """Clasifica una imagen ya recortada (ROI de la mano)."""
+    roi_resized = cv2.resize(roi, img_size)
+    roi_normalized = roi_resized / 255.0
+    roi_input = np.expand_dims(roi_normalized, axis=0)
+    pred = model.predict(roi_input, verbose=0)
+    return labels[np.argmax(pred)]
+
 
 if __name__ == "__main__":
     dataset_path = "dataset/asl_alphabet_test"

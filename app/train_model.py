@@ -1,77 +1,59 @@
 import os
-import pandas as pd
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers, models
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import matplotlib.pyplot as plt
 
-CLASSES = [chr(i) for i in range(65, 91)] + ["space", "nothing"]
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 DATASET_PATH = os.path.join(BASE_DIR, "dataset", "asl_alphabet_test")
 MODEL_PATH = os.path.join(BASE_DIR, "sign_model.h5")
 
 if not os.path.exists(DATASET_PATH):
     raise FileNotFoundError(f"No se encontró el dataset en {DATASET_PATH}")
 
-files = [f for f in os.listdir(DATASET_PATH) if f.lower().endswith(".jpg")]
-labels = []
-
-for f in files:
-    name = f.split("_")[0].upper()
-    if name in [chr(i) for i in range(65, 91)]:
-        labels.append(name)
-    elif "space" in f.lower():
-        labels.append("space")
-    elif "nothing" in f.lower():
-        labels.append("nothing")
-    else:
-        labels.append("unknown")
-
-df = pd.DataFrame({
-    "filename": [os.path.join(DATASET_PATH, f) for f in files],
-    "class": labels
-})
-df = df[df["class"] != "unknown"]
-
-train_df = df.sample(frac=0.8, random_state=42)
-val_df = df.drop(train_df.index)
+IMG_SIZE = (64, 64)
+BATCH_SIZE = 32
+EPOCHS = 30
+VAL_SPLIT = 0.2 
 
 datagen = ImageDataGenerator(
-    rescale=1. / 255,
+    rescale=1.0 / 255.0,
+    validation_split=VAL_SPLIT,
     rotation_range=20,
     width_shift_range=0.1,
     height_shift_range=0.1,
     shear_range=0.1,
     zoom_range=0.1,
     horizontal_flip=True,
-    fill_mode="nearest"
+    fill_mode="nearest",
 )
 
-train_generator = datagen.flow_from_dataframe(
-    train_df,
-    x_col="filename",
-    y_col="class",
-    target_size=(64, 64),
-    batch_size=32,
+train_generator = datagen.flow_from_directory(
+    DATASET_PATH,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
     class_mode="categorical",
-    classes=CLASSES
+    subset="training",
 )
 
-val_generator = datagen.flow_from_dataframe(
-    val_df,
-    x_col="filename",
-    y_col="class",
-    target_size=(64, 64),
-    batch_size=32,
+val_generator = datagen.flow_from_directory(
+    DATASET_PATH,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
     class_mode="categorical",
-    classes=CLASSES
+    subset="validation",
 )
+
+num_classes = train_generator.num_classes
+class_indices = train_generator.class_indices
+print("Clases detectadas:", class_indices)
 
 def create_model():
     model = models.Sequential([
-        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(64, 64, 3)),
+        layers.Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3)),
+        layers.Conv2D(32, (3, 3), activation='relu'),
         layers.BatchNormalization(),
         layers.MaxPooling2D(2, 2),
 
@@ -86,7 +68,7 @@ def create_model():
         layers.Flatten(),
         layers.Dense(256, activation='relu'),
         layers.Dropout(0.5),
-        layers.Dense(len(CLASSES), activation='softmax')
+        layers.Dense(num_classes, activation='softmax'),
     ])
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model
@@ -107,11 +89,12 @@ if __name__ == "__main__":
     history = model.fit(
         train_generator,
         validation_data=val_generator,
-        epochs=30,
-        callbacks=[checkpoint, early_stop]
+        epochs=EPOCHS,
+        callbacks=[checkpoint, early_stop],
     )
 
-    print(f"\n Modelo entrenado y guardado en: {MODEL_PATH}")
+    print(f"\nModelo entrenado y guardado en: {MODEL_PATH}")
+
 
     plt.figure()
     plt.plot(history.history['accuracy'], label='Entrenamiento')
